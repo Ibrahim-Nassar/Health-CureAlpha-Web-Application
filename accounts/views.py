@@ -20,7 +20,7 @@ from .forms import (
     TwoFactorPasswordResetConfirmForm,
 )
 from .utils import create_2fa_code_for_user, send_2fa_email, verify_2fa_code
-from audit.utils import log_action, get_client_ip, make_rate_limit_key, increment_rate_limit
+from audit.utils import log_action, get_client_ip, make_rate_limit_key, increment_rate_limit, rate_limit_blocked_response
 from audit.signals import twofa_verification_failed
 
 TWO_FA_SESSION_TIMEOUT_SECONDS = 900
@@ -265,9 +265,15 @@ class LoggedPasswordResetView(auth_views.PasswordResetView):
 
     def dispatch(self, request, *args, **kwargs):
         if request.method == 'POST':
-            attempts = increment_rate_limit(request, self.RATE_LIMIT_PREFIX)
-            if attempts > self.RATE_LIMIT_THRESHOLD:
-                return render(request, '429.html', status=429)
+            identifier = request.POST.get('username') or request.POST.get('email') or ''
+            resp = rate_limit_blocked_response(
+                request,
+                prefix=self.RATE_LIMIT_PREFIX,
+                limit=self.RATE_LIMIT_THRESHOLD,
+                identifier=identifier,
+            )
+            if resp:
+                return resp
         return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):

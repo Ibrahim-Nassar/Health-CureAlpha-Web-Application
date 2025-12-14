@@ -11,7 +11,7 @@ from django.core.exceptions import PermissionDenied
 from accounts.models import CustomUser, DoctorProfile, NurseProfile, PatientProfile
 from .models import Appointment, MedicalNote
 from .forms import AppointmentForm, DiagnosisForm, MedicalNoteForm, StaffCreationForm, ProfileForm, NurseAssignmentForm, PatientCreationForm
-from audit.utils import log_action
+from audit.utils import log_action, log_phi_view
 from audit.models import AuditLog
 
 
@@ -56,6 +56,19 @@ class AdminPatientListView(AdminRequiredMixin, ListView):
     def get_queryset(self):
         return PatientProfile.objects.select_related('user').order_by('user__username')
 
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        patients = ctx.get('object_list') or []
+        page = (self.request.GET.get('page') or '1').strip()[:10]
+        log_phi_view(
+            self.request,
+            action="VIEW_PATIENT_LIST_ADMIN",
+            resource="Admin patient list",
+            patients=patients,
+            extra_details=f"page={page or '1'}",
+        )
+        return ctx
+
 
 class AdminAppointmentListView(AdminRequiredMixin, ListView):
     model = Appointment
@@ -78,6 +91,31 @@ class AdminAppointmentListView(AdminRequiredMixin, ListView):
         ctx = super().get_context_data(**kwargs)
         ctx['doctors'] = CustomUser.objects.filter(role=CustomUser.Role.DOCTOR)
         ctx['statuses'] = Appointment.Status.choices
+        appointments = ctx.get('object_list') or []
+        try:
+            sample = appointments[:10]
+        except Exception:
+            sample = appointments
+
+        patient_usernames = []
+        for appt in sample:
+            patient = getattr(appt, "patient", None)
+            username = getattr(patient, "username", None)
+            if username:
+                username = str(username).strip()
+                if username and username not in patient_usernames:
+                    patient_usernames.append(username)
+            if len(patient_usernames) >= 10:
+                break
+
+        page = (self.request.GET.get('page') or '1').strip()[:10]
+        log_phi_view(
+            self.request,
+            action="VIEW_APPOINTMENTS_ADMIN",
+            resource="Admin appointment list",
+            patient_usernames=patient_usernames,
+            extra_details=f"page={page or '1'}",
+        )
         return ctx
 
 class DoctorDashboardView(DoctorRequiredMixin, ListView):
@@ -98,6 +136,13 @@ class DoctorDashboardView(DoctorRequiredMixin, ListView):
         ctx['my_patients'] = PatientProfile.objects.filter(user_id__in=patient_ids)
         ctx['show_all'] = self.request.GET.get('show_all') == '1'
         ctx['now'] = timezone.now()
+        log_phi_view(
+            self.request,
+            action="VIEW_PATIENTS_DOCTOR_DASH",
+            resource="Doctor dashboard",
+            patients=ctx.get('my_patients'),
+            extra_details=f"show_all={ctx['show_all']}",
+        )
         return ctx
 
 
@@ -116,6 +161,32 @@ class DoctorAppointmentHistoryView(DoctorRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx['statuses'] = Appointment.Status.choices
+        appointments = ctx.get('object_list') or []
+        try:
+            sample = appointments[:10]
+        except Exception:
+            sample = appointments
+
+        patient_usernames = []
+        for appt in sample:
+            patient = getattr(appt, "patient", None)
+            username = getattr(patient, "username", None)
+            if username:
+                username = str(username).strip()
+                if username and username not in patient_usernames:
+                    patient_usernames.append(username)
+            if len(patient_usernames) >= 10:
+                break
+
+        page = (self.request.GET.get('page') or '1').strip()[:10]
+        status = (self.request.GET.get('status') or '').strip()[:20]
+        log_phi_view(
+            self.request,
+            action="VIEW_APPOINTMENT_HISTORY_DOCTOR",
+            resource="Doctor appointment history",
+            patient_usernames=patient_usernames,
+            extra_details=f"page={page or '1'}, status_filter={status or 'any'}",
+        )
         return ctx
 
 class NurseDashboardView(NurseRequiredMixin, TemplateView):
@@ -157,6 +228,13 @@ class NurseDashboardView(NurseRequiredMixin, TemplateView):
             date_time__gte=timezone.now()
         ).select_related('patient', 'doctor').order_by('date_time')[:10]
         
+        log_phi_view(
+            self.request,
+            action="VIEW_PATIENTS_NURSE_DASH",
+            resource="Nurse dashboard",
+            patients=patients,
+            extra_details=f"assigned_doctors={len(doctors)}",
+        )
         return ctx
 
 class PatientDashboardView(PatientRequiredMixin, ListView):
@@ -171,6 +249,23 @@ class PatientDashboardView(PatientRequiredMixin, ListView):
         ctx = super().get_context_data(**kwargs)
         ctx['my_notes'] = MedicalNote.objects.filter(patient=self.request.user).order_by('-created_at')
         ctx['now'] = timezone.now()
+        appointments = ctx.get('object_list') or []
+        notes = ctx.get('my_notes') or []
+        try:
+            appointment_count = appointments.count()
+        except Exception:
+            appointment_count = len(appointments)
+        try:
+            note_count = notes.count()
+        except Exception:
+            note_count = len(notes)
+        log_phi_view(
+            self.request,
+            action="VIEW_OWN_RECORDS",
+            resource="Patient dashboard",
+            patient_usernames=[getattr(self.request.user, "username", "")],
+            extra_details=f"appointments={appointment_count}, notes={note_count}",
+        )
         return ctx
 
 
@@ -312,6 +407,12 @@ class AddMedicalNoteView(LoginRequiredMixin, CreateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx['patient'] = self.target_patient
+        log_phi_view(
+            self.request,
+            action="VIEW_PATIENT_FOR_NOTE",
+            resource="Add medical note",
+            patient_usernames=[getattr(self.target_patient, "username", "")],
+        )
         return ctx
 
     def form_valid(self, form):
@@ -503,6 +604,19 @@ class ManagePatientsView(AdminRequiredMixin, ListView):
             qs = qs.filter(Q(username__icontains=search))
         return qs.order_by('username')
 
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        patients = ctx.get('object_list') or []
+        page = (self.request.GET.get('page') or '1').strip()[:10]
+        log_phi_view(
+            self.request,
+            action="VIEW_PATIENT_LIST_MANAGE",
+            resource="Manage patients",
+            patients=patients,
+            extra_details=f"page={page or '1'}",
+        )
+        return ctx
+
 
 class DeletePatientView(AdminRequiredMixin, DeleteView):
     model = CustomUser
@@ -519,6 +633,13 @@ class DeletePatientView(AdminRequiredMixin, DeleteView):
             ctx['patient_profile'] = None
         ctx['appointment_count'] = Appointment.objects.filter(patient=self.object).count()
         ctx['note_count'] = MedicalNote.objects.filter(patient=self.object).count()
+        log_phi_view(
+            self.request,
+            action="VIEW_PATIENT_DELETE_CONFIRM",
+            resource="Delete patient confirm",
+            patient_usernames=[getattr(self.object, "username", "")],
+            extra_details=f"appointments={ctx['appointment_count']}, notes={ctx['note_count']}",
+        )
         return ctx
 
     def post(self, request, *args, **kwargs):

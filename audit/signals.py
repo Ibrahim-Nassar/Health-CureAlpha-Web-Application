@@ -1,30 +1,12 @@
 from django.contrib.auth.signals import user_logged_in, user_login_failed, user_logged_out
 from django.dispatch import receiver, Signal
 from django.core.cache import cache
-from .utils import log_action, get_client_ip, make_rate_limit_key, increment_rate_limit, normalize_rate_limit_username
+from .utils import log_action, get_client_ip, make_rate_limit_key, increment_rate_limit, normalize_rate_limit_username, sanitize_username_for_logging
 
 LOCKOUT_THRESHOLD = 5
 LOCKOUT_TIME = 900
 
 twofa_verification_failed = Signal()
-
-
-def sanitize_username_for_logging(username):
-    if not username:
-        return '[empty]'
-    has_special = any(c in username for c in '!@#$%^&*()_+-=[]{}|;:,.<>?')
-    is_long = len(username) > 30
-    has_mixed_case = any(c.isupper() for c in username) and any(c.islower() for c in username)
-    has_numbers = any(c.isdigit() for c in username)
-    
-    password_indicators = sum([has_special, is_long, has_mixed_case and has_numbers])
-    if password_indicators >= 2:
-        return '[REDACTED - possible password]'
-    
-    if len(username) > 50:
-        return username[:20] + '...[truncated]'
-    
-    return username
 
 
 @receiver(user_logged_in)

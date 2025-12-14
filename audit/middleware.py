@@ -1,7 +1,5 @@
-from django.core.cache import cache
-from django.shortcuts import render
 from django.urls import reverse
-from .utils import get_client_ip, make_rate_limit_key, normalize_rate_limit_username
+from .utils import normalize_rate_limit_username, rate_limit_blocked_response
 
 class AuditMiddleware:
     LOGIN_RATE_LIMIT = 5
@@ -41,42 +39,43 @@ class AuditMiddleware:
 
     def __call__(self, request):
         if request.path == reverse('login') and request.method == 'POST':
-            key = self._get_rate_limit_key(request, 'login_failures')
-            failures = cache.get(key, 0)
-            if failures >= self.LOGIN_RATE_LIMIT:
-                return render(request, '429.html', status=429)
+            resp = rate_limit_blocked_response(
+                request,
+                prefix='login_failures',
+                limit=self.LOGIN_RATE_LIMIT,
+                identifier=request.POST.get('username', ''),
+            )
+            if resp:
+                return resp
         
         if request.path == reverse('verify_2fa') and request.method == 'POST':
-            key = self._get_rate_limit_key(request, '2fa_failures')
-            failures = cache.get(key, 0)
-            if failures >= self.VERIFY_2FA_RATE_LIMIT:
-                return render(request, '429.html', status=429)
+            resp = rate_limit_blocked_response(
+                request,
+                prefix='2fa_failures',
+                limit=self.VERIFY_2FA_RATE_LIMIT,
+                identifier=request.POST.get('username', ''),
+            )
+            if resp:
+                return resp
         
         if request.path.startswith('/accounts/register/'):
             import hashlib
-            
-            ip = get_client_ip(request)
-            
             session_key = getattr(request.session, 'session_key', '') or ''
             
             if session_key:
                 composite_suffix = hashlib.md5(session_key.encode(), usedforsecurity=False).hexdigest()[:16]
             else:
                 composite_suffix = "nosession"
-            
-            key = f"register_dos_{ip}_{composite_suffix}"
-            
-            limit = 3 
-            count = cache.get(key, 0)
-            
-            if count >= limit:
-                try:
-                    return render(request, '429.html', status=429)
-                except Exception:
-                    from django.http import HttpResponse
-                    return HttpResponse("Too Many Requests", status=429)
-            
-            cache.set(key, count + 1, timeout=300)
+            limit = 3
+            resp = rate_limit_blocked_response(
+                request,
+                prefix="register_dos",
+                limit=limit,
+                identifier=composite_suffix,
+                base_timeout=300,
+            )
+            if resp:
+                return resp
 
         response = self.get_response(request)
         
