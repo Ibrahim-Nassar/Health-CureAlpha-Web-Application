@@ -1,0 +1,102 @@
+{% extends 'clinic/dashboard_base.html' %}
+
+{% block dashboard_title %}Manage Staff{% endblock %}
+
+{% block dashboard_actions %}
+<a href="{% url 'clinic:create_staff' %}" class="btn btn-primary">
+    Create New Staff
+</a>
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="dashboard-section">
+    {% if staff_users %}
+    <div class="dashboard-table-wrapper overflow-x-auto">
+        <table class="min-w-full text-sm">
+            <thead>
+                <tr>
+                    <th class="px-6 py-3">Username</th>
+                    <th class="px-6 py-3">Email</th>
+                    <th class="px-6 py-3">Role</th>
+                    <th class="px-6 py-3">Details</th>
+                    <th class="px-6 py-3">Status</th>
+                    <th class="px-6 py-3">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-700">
+                {% for staff in staff_users %}
+                <tr class="hover:bg-gray-800 transition">
+                    <td class="px-6 py-4 font-bold">{{ staff.username }}</td>
+                    <td class="px-6 py-4 text-gray-400">{{ staff.email }}</td>
+                    <td class="px-6 py-4">
+                        <span class="badge {% if staff.role == 'DOCTOR' %}badge-doctor{% else %}badge-nurse{% endif %}">
+                            {{ staff.get_role_display }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-400">
+                        {% if staff.role == 'DOCTOR' %}
+                            {% if staff.doctor_profile.specialization %}
+                                {{ staff.doctor_profile.specialization }}
+                            {% else %}
+                                <span class="text-gray-500">No specialization</span>
+                            {% endif %}
+                        {% elif staff.role == 'NURSE' %}
+                            {% with assigned=staff.nurse_profile.assigned_doctors.count %}
+                                {% if assigned > 0 %}
+                                    {{ assigned }} doctor{{ assigned|pluralize }} assigned
+                                {% else %}
+                                    <span class="text-yellow-400">No doctors assigned</span>
+                                {% endif %}
+                            {% endwith %}
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4">
+                        {% if staff.is_active %}
+                        <span class="text-green-400 font-medium">Active</span>
+                        {% else %}
+                        <span class="text-red-400 font-medium">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            {% if staff.role == 'NURSE' %}
+                            <a href="{% url 'clinic:edit_nurse_assignments' staff.id %}" class="btn btn-info btn-sm">
+                                Assignments
+                            </a>
+                            {% endif %}
+                            <form action="{% url 'clinic:toggle_staff_status' staff.id %}" method="post" class="inline">
+                                {% csrf_token %}
+                                {% if staff.is_active %}
+                                <button type="submit" class="btn btn-warning btn-sm">
+                                    Deactivate
+                                </button>
+                                {% else %}
+                                <button type="submit" class="btn btn-success btn-sm">
+                                    Activate
+                                </button>
+                                {% endif %}
+                            </form>
+                            <a href="{% url 'clinic:delete_staff' staff.id %}" class="btn btn-danger btn-sm">
+                                Delete
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state-card">
+        <div class="empty-state-icon-wrapper">
+            <svg class="empty-state-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+            </svg>
+        </div>
+        <h3 class="empty-state-title">No Staff Members</h3>
+        <p class="empty-state-description">No staff members found.</p>
+        <a href="{% url 'clinic:create_staff' %}" class="btn btn-primary btn-sm mt-4">Create First Staff Member</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

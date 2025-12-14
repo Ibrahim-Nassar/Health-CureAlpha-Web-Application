@@ -1,0 +1,121 @@
+{% extends 'clinic/dashboard_base.html' %}
+
+{% block dashboard_title %}Manage Patients{% endblock %}
+
+{% block dashboard_content %}
+
+<div class="dashboard-section">
+    <div class="filter-bar mb-0">
+        <form method="get" class="filter-form">
+            <div class="filter-group flex-1">
+                <label class="filter-label">Search Patients</label>
+                <input type="text" name="search" value="{{ request.GET.search }}" 
+                       placeholder="Search by username, email, or phone..." 
+                       class="form-control">
+            </div>
+            <div class="flex items-end gap-2">
+                <button type="submit" class="btn btn-primary">Search</button>
+                {% if request.GET.search %}
+                    <a href="{% url 'clinic:manage_patients' %}" class="btn btn-secondary">Clear</a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="dashboard-section">
+    {% if patients %}
+    <div class="dashboard-table-wrapper overflow-x-auto">
+        <table class="min-w-full text-sm">
+            <thead>
+                <tr>
+                    <th class="px-6 py-3">Username</th>
+                    <th class="px-6 py-3">Email</th>
+                    <th class="px-6 py-3">Phone</th>
+                    <th class="px-6 py-3">Date of Birth</th>
+                    <th class="px-6 py-3">Registered</th>
+                    <th class="px-6 py-3">Status</th>
+                    <th class="px-6 py-3">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-700">
+                {% for patient in patients %}
+                <tr class="hover:bg-gray-800 transition">
+                    <td class="px-6 py-4 font-bold">{{ patient.username }}</td>
+                    <td class="px-6 py-4 text-gray-400">{{ patient.email }}</td>
+                    <td class="px-6 py-4 text-gray-400">
+                        {% if patient.patient_profile %}
+                            {{ patient.patient_profile.phone|default:"-" }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-gray-400">
+                        {% if patient.patient_profile and patient.patient_profile.date_of_birth %}
+                            {{ patient.patient_profile.date_of_birth|date:"M d, Y" }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-gray-500 text-sm">{{ patient.date_joined|date:"M d, Y" }}</td>
+                    <td class="px-6 py-4">
+                        {% if patient.is_active %}
+                        <span class="text-green-400 font-medium">Active</span>
+                        {% else %}
+                        <span class="text-red-400 font-medium">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <form action="{% url 'clinic:toggle_patient_status' patient.id %}" method="post" class="inline">
+                                {% csrf_token %}
+                                {% if patient.is_active %}
+                                <button type="submit" class="btn btn-warning btn-sm">
+                                    Deactivate
+                                </button>
+                                {% else %}
+                                <button type="submit" class="btn btn-success btn-sm">
+                                    Activate
+                                </button>
+                                {% endif %}
+                            </form>
+                            <a href="{% url 'clinic:delete_patient' patient.id %}" class="btn btn-danger btn-sm">
+                                Delete
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    {% if is_paginated %}
+    <div class="pagination mt-6">
+        {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">Previous</a>
+        {% endif %}
+        <span class="px-4 py-2 text-gray-400">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">Next</a>
+        {% endif %}
+    </div>
+    {% endif %}
+    {% else %}
+    {% if request.GET.search %}
+    <div class="empty-state-card">
+        <div class="empty-state-icon-wrapper">
+            <svg class="empty-state-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+            </svg>
+        </div>
+        <h3 class="empty-state-title">No Results</h3>
+        <p class="empty-state-description">No patients found matching "{{ request.GET.search }}".</p>
+        <a href="{% url 'clinic:manage_patients' %}" class="btn btn-secondary btn-sm mt-4">Clear Search</a>
+    </div>
+    {% else %}
+    {% include 'clinic/partials/empty_state.html' with icon="users" title="No Patients" description="No patients registered yet." %}
+    {% endif %}
+    {% endif %}
+</div>
+{% endblock %}

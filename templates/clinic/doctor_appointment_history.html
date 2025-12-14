@@ -1,0 +1,82 @@
+{% extends 'clinic/dashboard_base.html' %}
+
+{% block dashboard_title %}Appointment History{% endblock %}
+
+{% block dashboard_content %}
+
+<div class="dashboard-section">
+    <div class="filter-bar mb-0">
+        <form method="get" class="filter-form">
+            <div class="filter-group flex-1">
+                <label class="filter-label">Filter by Status</label>
+                <select name="status" class="form-control">
+                    <option value="">All Statuses</option>
+                    {% for value, label in statuses %}
+                    <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="flex items-end">
+                <button type="submit" class="btn btn-primary">Filter</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="dashboard-section">
+    {% if appointments %}
+    <div class="dashboard-table-wrapper overflow-x-auto">
+        <table class="min-w-full text-sm">
+            <thead>
+                <tr>
+                    <th class="px-6 py-3">Date/Time</th>
+                    <th class="px-6 py-3">Patient</th>
+                    <th class="px-6 py-3">Status</th>
+                    <th class="px-6 py-3">Diagnosis</th>
+                    <th class="px-6 py-3">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-700">
+                {% for appt in appointments %}
+                <tr class="hover:bg-gray-800 transition">
+                    <td class="px-6 py-4 whitespace-nowrap">{{ appt.date_time|date:"M d, Y H:i" }}</td>
+                    <td class="px-6 py-4 font-medium">{{ appt.patient.username }}</td>
+                    <td class="px-6 py-4">
+                        <span class="badge badge-{{ appt.status|lower }}">{{ appt.get_status_display }}</span>
+                    </td>
+                    <td class="px-6 py-4 text-gray-400 max-w-xs truncate">
+                        {% if appt.diagnosis %}
+                            {{ appt.diagnosis|truncatechars:50 }}
+                        {% else %}
+                            <span class="text-gray-600">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4">
+                        {% if appt.status == 'COMPLETED' %}
+                            <a href="{% url 'clinic:add_diagnosis' appt.id %}?next={{ request.get_full_path|urlencode }}" class="action-link action-link-purple">
+                                {% if appt.diagnosis %}Edit{% else %}Add{% endif %} Diagnosis
+                            </a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    {% if is_paginated %}
+    <div class="pagination mt-6">
+        {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">Previous</a>
+        {% endif %}
+        <span class="px-4 py-2 text-gray-400">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">Next</a>
+        {% endif %}
+    </div>
+    {% endif %}
+    {% else %}
+    {% include 'clinic/partials/empty_state.html' with icon="calendar" title="No Appointments" description="No appointments in your history." %}
+    {% endif %}
+</div>
+{% endblock %}

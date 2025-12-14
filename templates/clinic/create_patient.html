@@ -1,0 +1,125 @@
+{% extends 'clinic/dashboard_base.html' %}
+
+{% block dashboard_title %}Create New Patient{% endblock %}
+
+{% block dashboard_actions %}
+<a href="{% if user.is_admin %}{% url 'clinic:manage_patients' %}{% else %}{% url 'clinic:doctor_dashboard' %}{% endif %}" class="btn btn-secondary">
+    Cancel
+</a>
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="dashboard-section">
+    <div class="form-container">
+        <p class="text-gray-400 mb-6">Create a new patient account. The patient will receive login credentials to access their portal.</p>
+        
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+            
+            <div class="form-section">
+                <h3 class="form-section-title">Account Information</h3>
+                
+                <div class="form-group">
+                    <label for="id_username" class="form-label">Username <span class="text-red-400">*</span></label>
+                    {{ form.username }}
+                    {% if form.username.help_text %}
+                    <p class="form-help">{{ form.username.help_text }}</p>
+                    {% endif %}
+                    {% if form.username.errors %}
+                    <p class="form-error">{{ form.username.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <div class="form-group">
+                    <label for="id_email" class="form-label">Email <span class="text-red-400">*</span></label>
+                    {{ form.email }}
+                    {% if form.email.help_text %}
+                    <p class="form-help">{{ form.email.help_text }}</p>
+                    {% endif %}
+                    {% if form.email.errors %}
+                    <p class="form-error">{{ form.email.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="form-group">
+                        <label for="id_password1" class="form-label">Password <span class="text-red-400">*</span></label>
+                        {{ form.password1 }}
+                        {% if form.password1.help_text %}
+                        <p class="form-help">{{ form.password1.help_text }}</p>
+                        {% endif %}
+                        {% if form.password1.errors %}
+                        <p class="form-error">{{ form.password1.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="id_password2" class="form-label">Confirm Password <span class="text-red-400">*</span></label>
+                        {{ form.password2 }}
+                        {% if form.password2.errors %}
+                        <p class="form-error">{{ form.password2.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <h3 class="form-section-title">Personal Information</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="form-group">
+                        <label for="id_first_name" class="form-label">First Name</label>
+                        {{ form.first_name }}
+                        {% if form.first_name.errors %}
+                        <p class="form-error">{{ form.first_name.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="id_last_name" class="form-label">Last Name</label>
+                        {{ form.last_name }}
+                        {% if form.last_name.errors %}
+                        <p class="form-error">{{ form.last_name.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="form-group">
+                        <label for="id_phone" class="form-label">Phone</label>
+                        {{ form.phone }}
+                        {% if form.phone.errors %}
+                        <p class="form-error">{{ form.phone.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="id_date_of_birth" class="form-label">Date of Birth</label>
+                        {{ form.date_of_birth }}
+                        {% if form.date_of_birth.errors %}
+                        <p class="form-error">{{ form.date_of_birth.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="id_address" class="form-label">Address</label>
+                    {{ form.address }}
+                    {% if form.address.errors %}
+                    <p class="form-error">{{ form.address.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="flex justify-end gap-4 pt-4">
+                <a href="{% if user.is_admin %}{% url 'clinic:manage_patients' %}{% else %}{% url 'clinic:doctor_dashboard' %}{% endif %}" class="btn btn-secondary">
+                    Cancel
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    Create Patient
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

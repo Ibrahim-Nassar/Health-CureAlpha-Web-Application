@@ -1,0 +1,86 @@
+{% extends 'clinic/dashboard_base.html' %}
+
+{% block dashboard_title %}System Audit Logs{% endblock %}
+
+{% block dashboard_content %}
+
+<div class="dashboard-section">
+    <div class="filter-bar mb-0">
+        <form method="get" class="filter-form">
+            <div class="filter-group flex-1">
+                <label class="filter-label">Filter by Action</label>
+                <input type="text" name="action" value="{{ request.GET.action }}" placeholder="e.g. LOGIN_FAILED" class="form-control">
+            </div>
+            <div class="filter-group flex-1">
+                <label class="filter-label">Filter by Role</label>
+                <select name="role" class="form-control">
+                    <option value="">All Roles</option>
+                    <option value="ADMIN" {% if request.GET.role == 'ADMIN' %}selected{% endif %}>Admin</option>
+                    <option value="DOCTOR" {% if request.GET.role == 'DOCTOR' %}selected{% endif %}>Doctor</option>
+                    <option value="NURSE" {% if request.GET.role == 'NURSE' %}selected{% endif %}>Nurse</option>
+                    <option value="PATIENT" {% if request.GET.role == 'PATIENT' %}selected{% endif %}>Patient</option>
+                </select>
+            </div>
+            <div class="flex items-end">
+                <button type="submit" class="btn btn-primary">Filter</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="dashboard-section">
+    <div class="dashboard-table-wrapper overflow-x-auto">
+        <table class="min-w-full text-sm">
+            <thead>
+                <tr>
+                    <th class="px-6 py-3">Timestamp</th>
+                    <th class="px-6 py-3">Actor</th>
+                    <th class="px-6 py-3">Action</th>
+                    <th class="px-6 py-3">IP Address</th>
+                    <th class="px-6 py-3">Resource</th>
+                    <th class="px-6 py-3">Details</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-700">
+                {% for log in logs %}
+                <tr class="hover:bg-gray-800 transition">
+                    <td class="px-6 py-4 text-gray-400 font-mono text-xs whitespace-nowrap">{{ log.timestamp|date:"Y-m-d H:i:s" }}</td>
+                    <td class="px-6 py-4">
+                        {% if log.actor %}
+                            <span class="font-bold text-primary">{{ log.actor.username }}</span>
+                            <span class="text-gray-500 text-xs">({{ log.actor.get_role_display }})</span>
+                        {% else %}
+                            <span class="text-gray-500">System/Anon</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="badge {% if 'FAILED' in log.action or 'DELETE' in log.action %}badge-danger{% elif 'LOGIN' in log.action or 'SUCCESS' in log.action %}badge-success{% else %}badge-gray{% endif %}">
+                            {{ log.action }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-gray-400 font-mono text-xs">{{ log.ip_address }}</td>
+                    <td class="px-6 py-4 text-gray-300 text-sm">{{ log.resource|default:"-" }}</td>
+                    <td class="px-6 py-4 text-gray-400 text-sm truncate max-w-xs" title="{{ log.details }}">{{ log.details|truncatechars:50 }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="px-6 py-8 text-center text-gray-500">No logs found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if is_paginated %}
+    <div class="pagination mt-6">
+        {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.action %}&action={{ request.GET.action }}{% endif %}{% if request.GET.role %}&role={{ request.GET.role }}{% endif %}">Previous</a>
+        {% endif %}
+        <span class="px-4 py-2 text-gray-400">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if request.GET.action %}&action={{ request.GET.action }}{% endif %}{% if request.GET.role %}&role={{ request.GET.role }}{% endif %}">Next</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

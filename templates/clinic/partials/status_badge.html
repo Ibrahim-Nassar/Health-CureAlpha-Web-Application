@@ -1,0 +1,11 @@
+{% comment %}
+Status Badge Component
+Usage: {% include 'clinic/partials/status_badge.html' with status=appointment.status display=appointment.get_status_display %}
+{% endcomment %}
+<span class="badge badge-{{ status|lower }}">{{ display }}</span>
+
+
+
+
+
+

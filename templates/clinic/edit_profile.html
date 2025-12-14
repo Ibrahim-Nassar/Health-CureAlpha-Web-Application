@@ -1,0 +1,93 @@
+{% extends 'clinic/dashboard_base.html' %}
+
+{% block dashboard_title %}Edit Your Profile{% endblock %}
+
+{% block dashboard_content %}
+<div class="max-w-lg mx-auto">
+    <div class="form-card">
+        <div class="form-card-body">
+            <form method="post" class="django-form">
+                {% csrf_token %}
+                
+                {% if form.errors %}
+                <div class="alert alert-error mb-4">
+                    <svg class="alert-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <div class="alert-content">
+                        <ul class="list-disc list-inside text-sm">
+                            {% for field in form %}
+                                {% for error in field.errors %}
+                                    <li>{{ field.label }}: {{ error }}</li>
+                                {% endfor %}
+                            {% endfor %}
+                            {% for error in form.non_field_errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <div class="form-group">
+                    <label class="form-label text-gray-400">Username</label>
+                    <p class="readonly-field">{{ user.username }}</p>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label text-gray-400">Email</label>
+                    <p class="readonly-field">{{ user.email }}</p>
+                </div>
+                
+                <hr class="border-gray-700 my-6">
+                
+                <div class="form-group">
+                    <label class="form-label" for="id_date_of_birth">Date of Birth</label>
+                    <input type="date" 
+                           name="date_of_birth" 
+                           id="id_date_of_birth" 
+                           value="{{ form.date_of_birth.value|date:'Y-m-d'|default:'' }}"
+                           class="form-control">
+                    {% if form.date_of_birth.errors %}
+                        <p class="form-error">{{ form.date_of_birth.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="id_phone">Phone Number</label>
+                    <input type="tel" 
+                           name="phone" 
+                           id="id_phone" 
+                           value="{{ form.phone.value|default:'' }}"
+                           placeholder="Enter your phone number"
+                           class="form-control">
+                    {% if form.phone.errors %}
+                        <p class="form-error">{{ form.phone.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <div class="form-group mb-6">
+                    <label class="form-label" for="id_address">Address</label>
+                    <textarea name="address" 
+                              id="id_address" 
+                              rows="3"
+                              placeholder="Enter your address"
+                              class="form-control">{{ form.address.value|default:'' }}</textarea>
+                    {% if form.address.errors %}
+                        <p class="form-error">{{ form.address.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <div class="flex gap-4">
+                    <button type="submit" class="btn btn-primary flex-1">
+                        Save Changes
+                    </button>
+                    <a href="{% url 'clinic:patient_dashboard' %}" class="btn btn-secondary flex-1">
+                        Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,116 @@
+{% extends 'clinic/dashboard_base.html' %}
+
+{% block dashboard_title %}Nurse Dashboard{% endblock %}
+
+{% block dashboard_content %}
+
+<div class="dashboard-section">
+    <div class="dashboard-section-header">
+        <h2 class="dashboard-section-title">Assigned Doctors</h2>
+    </div>
+    
+    {% if assigned_doctors %}
+    <div class="assigned-doctors-list">
+        {% for doc in assigned_doctors %}
+        <span class="doctor-tag">
+            {{ doc.user.username }}{% if doc.specialization %} ({{ doc.specialization }}){% endif %}
+        </span>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="card p-4">
+        <p class="text-gray-400 font-medium">No doctors assigned yet.</p>
+        <p class="text-sm text-gray-500 mt-1">Contact your administrator to be assigned to doctors.</p>
+    </div>
+    {% endif %}
+</div>
+
+{% if upcoming_appointments %}
+<div class="dashboard-section">
+    <div class="dashboard-section-header">
+        <h2 class="dashboard-section-title">Upcoming Appointments</h2>
+    </div>
+    
+    <div class="dashboard-table-wrapper overflow-x-auto">
+        <table class="min-w-full text-sm">
+            <thead>
+                <tr>
+                    <th class="px-6 py-3">Date/Time</th>
+                    <th class="px-6 py-3">Patient</th>
+                    <th class="px-6 py-3">Doctor</th>
+                    <th class="px-6 py-3">Status</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-700">
+                {% for appt in upcoming_appointments %}
+                <tr class="hover:bg-gray-800 transition">
+                    <td class="px-6 py-4 text-gray-400 text-sm whitespace-nowrap">{{ appt.date_time|date:"M d, Y H:i" }}</td>
+                    <td class="px-6 py-4 font-medium">{{ appt.patient.username }}</td>
+                    <td class="px-6 py-4 text-gray-400">{{ appt.doctor.username }}</td>
+                    <td class="px-6 py-4">
+                        <span class="badge badge-{{ appt.status|lower }}">{{ appt.get_status_display }}</span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<div class="dashboard-section" id="patients">
+    <div class="dashboard-section-header">
+        <h2 class="dashboard-section-title">Patients</h2>
+    </div>
+
+    {% if patients %}
+    <div class="patient-cards-grid">
+        {% for p_profile in patients %}
+        <div class="patient-card">
+            <div class="patient-card-header">
+                <h3 class="patient-card-name">{{ p_profile.user.username }}</h3>
+                <div class="patient-card-info">
+                    DOB: {{ p_profile.date_of_birth|default:"Not set" }}
+                    {% if p_profile.doctor_names %}
+                    <span class="text-primary">· Dr. {{ p_profile.doctor_names }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="patient-card-body">
+                <div class="patient-card-notes">
+                    <p class="patient-card-notes-title">Medical Notes</p>
+                    <div class="max-h-40 overflow-y-auto space-y-2">
+                        {% for note in p_profile.user.medical_notes.all %}
+                        <div class="patient-note-item">
+                            <p class="patient-note-content">{{ note.content|truncatechars:80 }}</p>
+                            <div class="flex justify-between items-center">
+                                <span class="patient-note-meta">{{ note.author.username }} ({{ note.author.get_role_display }}) - {{ note.created_at|date:"M d, H:i" }}</span>
+                                {% if note.author == user %}
+                                <div class="space-x-2">
+                                    <a href="{% url 'clinic:edit_medical_note' note.id %}" class="action-link action-link-info text-xs">Edit</a>
+                                    <a href="{% url 'clinic:delete_medical_note' note.id %}" class="action-link action-link-danger text-xs">Del</a>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% empty %}
+                        <p class="text-sm text-gray-500 italic">No medical notes yet.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="patient-card-footer">
+                <a href="{% url 'clinic:add_medical_note' p_profile.user.id %}" class="btn btn-secondary btn-block">
+                    Add Note
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    {% include 'clinic/partials/empty_state.html' with icon="users" title="No Patients" description="No patients associated with your assigned doctors. Once your doctors have appointments, their patients will appear here." %}
+    {% endif %}
+</div>
+{% endblock %}

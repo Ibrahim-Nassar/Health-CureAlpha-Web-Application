@@ -1,0 +1,48 @@
+{% extends 'clinic/dashboard_base.html' %}
+
+{% block dashboard_title %}Patient Directory{% endblock %}
+
+{% block dashboard_content %}
+<div class="dashboard-section">
+    {% if patients %}
+    <div class="dashboard-table-wrapper overflow-x-auto">
+        <table class="min-w-full text-sm">
+            <thead>
+                <tr>
+                    <th class="px-6 py-3">Username</th>
+                    <th class="px-6 py-3">Email</th>
+                    <th class="px-6 py-3">Phone</th>
+                    <th class="px-6 py-3">Date of Birth</th>
+                    <th class="px-6 py-3">Registered</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-700">
+                {% for patient in patients %}
+                <tr class="hover:bg-gray-800 transition">
+                    <td class="px-6 py-4 font-bold">{{ patient.user.username }}</td>
+                    <td class="px-6 py-4 text-gray-400">{{ patient.user.email }}</td>
+                    <td class="px-6 py-4 text-gray-400">{{ patient.phone|default:"-" }}</td>
+                    <td class="px-6 py-4 text-gray-400">{{ patient.date_of_birth|default:"-" }}</td>
+                    <td class="px-6 py-4 text-gray-500 text-sm">{{ patient.user.date_joined|date:"M d, Y" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    {% if is_paginated %}
+    <div class="pagination mt-6">
+        {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}">Previous</a>
+        {% endif %}
+        <span class="px-4 py-2 text-gray-400">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}">Next</a>
+        {% endif %}
+    </div>
+    {% endif %}
+    {% else %}
+    {% include 'clinic/partials/empty_state.html' with icon="users" title="No Patients" description="No patients registered yet." %}
+    {% endif %}
+</div>
+{% endblock %}

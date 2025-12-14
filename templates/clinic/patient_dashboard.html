@@ -1,0 +1,101 @@
+{% extends 'clinic/dashboard_base.html' %}
+
+{% block dashboard_title %}My Health Dashboard{% endblock %}
+
+{% block dashboard_actions %}
+<a href="{% url 'clinic:edit_profile' %}" class="btn btn-secondary">
+    Edit Profile
+</a>
+<a href="{% url 'clinic:book_appointment' %}" class="btn btn-primary">
+    Book Appointment
+</a>
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="two-column-layout">
+    
+    <div>
+        <div class="dashboard-section">
+            <div class="dashboard-section-header">
+                <h2 class="dashboard-section-title">My Appointments</h2>
+            </div>
+            
+            {% if appointments %}
+            <div class="space-y-4">
+                {% for appt in appointments %}
+                <div class="appointment-card">
+                    <div class="appointment-card-header">
+                        <div>
+                            <p class="appointment-card-doctor">Dr. {{ appt.doctor.username }}</p>
+                            <p class="appointment-card-date">{{ appt.date_time|date:"M d, Y" }} at {{ appt.date_time|time:"H:i" }}</p>
+                        </div>
+                        <span class="badge badge-{{ appt.status|lower }}">
+                            {{ appt.get_status_display }}
+                        </span>
+                    </div>
+                    
+                    {% if appt.diagnosis %}
+                    <div class="appointment-card-diagnosis">
+                        <p class="appointment-card-diagnosis-label">Doctor's Diagnosis</p>
+                        <p class="appointment-card-diagnosis-text">{{ appt.diagnosis }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    {% if appt.status == 'REQUESTED' or appt.status == 'CONFIRMED' %}
+                        {% if appt.date_time > now %}
+                        <div class="appointment-card-actions">
+                            <form action="{% url 'clinic:patient_cancel_appointment' appt.id %}" method="post" class="inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('{% if appt.status == 'REQUESTED' %}Are you sure you want to cancel this appointment request?{% else %}Are you sure you want to cancel this appointment?{% endif %}')">
+                                    {% if appt.status == 'REQUESTED' %}Cancel Request{% else %}Cancel Appointment{% endif %}
+                                </button>
+                            </form>
+                            {% if appt.status == 'REQUESTED' %}
+                                <span class="text-xs text-gray-500 ml-2">You can cancel while waiting for confirmation</span>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state-card">
+                <div class="empty-state-icon-wrapper">
+                    <svg class="empty-state-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                </div>
+                <h3 class="empty-state-title">No Appointments</h3>
+                <p class="empty-state-description">You haven't booked any appointments yet.</p>
+                <a href="{% url 'clinic:book_appointment' %}" class="btn btn-primary btn-sm mt-4">Book Your First Appointment</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div id="notes">
+        <div class="dashboard-section">
+            <div class="dashboard-section-header">
+                <h2 class="dashboard-section-title">Medical Notes</h2>
+            </div>
+            
+            {% if my_notes %}
+            <div class="space-y-3">
+                {% for note in my_notes %}
+                <div class="note-card">
+                    <p class="note-card-content">{{ note.content }}</p>
+                    <p class="note-card-meta">
+                        By <span class="font-medium">{{ note.author.username }}</span> 
+                        ({{ note.author.get_role_display }}) on {{ note.created_at|date:"M d, Y" }}
+                    </p>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            {% include 'clinic/partials/empty_state.html' with icon="document" title="No Medical Notes" description="Notes will appear here after your appointments." %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

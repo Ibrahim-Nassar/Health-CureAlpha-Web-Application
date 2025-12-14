@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+
+{% block title %}Register{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto">
+    <div class="card">
+        <div class="card-body">
+            <h2 class="text-2xl font-bold mb-6 text-center">Patient Registration</h2>
+            
+            <form method="post" class="django-form">
+                {% csrf_token %}
+                
+                {% for field in form %}
+                <div class="form-group">
+                    <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {% if field.field.widget.input_type == 'password' %}
+                        <div class="password-input-wrapper">
+                            {{ field }}
+                            <button
+                                type="button"
+                                class="password-toggle-btn"
+                                data-password-toggle
+                                data-target="{{ field.id_for_label }}"
+                                aria-label="Show password"
+                                aria-pressed="false"
+                            >
+                                <svg data-icon="eye" class="hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                                <svg data-icon="eye-off" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.269-2.943-9.543-7a9.97 9.97 0 012.19-3.568m3.24-2.19A9.956 9.956 0 0112 5c4.478 0 8.269 2.943 9.543 7a9.987 9.987 0 01-4.132 5.411M15 12a3 3 0 00-3-3m0 0a2.995 2.995 0 00-2.132.879M12 9v0m0 6a3 3 0 01-3-3m6 0a3 3 0 01-3 3m0 0v0M3 3l18 18" />
+                                </svg>
+                            </button>
+                        </div>
+                    {% else %}
+                        {{ field }}
+                    {% endif %}
+                    {% if field.help_text and field.name != 'password1' and field.name != 'password2' %}
+                        <div class="form-help">{{ field.help_text }}</div>
+                    {% endif %}
+                    {% if field.name == 'password1' %}
+                        <div class="password-live-help" data-password-live-help>
+                            <ul class="password-rules-list">
+                                <li data-rule="length" class="password-rule">At least 12 characters</li>
+                                <li data-rule="letter" class="password-rule">At least 1 letter</li>
+                                <li data-rule="digit" class="password-rule">At least 1 number</li>
+                                <li data-rule="special" class="password-rule">At least 1 special character</li>
+                                <li data-rule="numeric_only" class="password-rule">Not entirely numeric</li>
+                                <li data-rule="common" class="password-rule">Not a commonly used password</li>
+                                <li data-rule="similarity" class="password-rule">Not too similar to your username or email</li>
+                            </ul>
+                        </div>
+                    {% endif %}
+                    {% if field.name == 'password2' %}
+                        <p class="password-match-hint password-rule" data-password-match-hint>
+                            Passwords must match.
+                        </p>
+                    {% endif %}
+                    {% for error in field.errors %}
+                        <p class="form-error">{{ error }}</p>
+                    {% endfor %}
+                </div>
+                {% endfor %}
+                
+                <button type="submit" class="btn btn-success btn-block mt-2">
+                    Register
+                </button>
+            </form>
+            
+            <p class="mt-4 text-center text-sm text-gray-400">
+                Already have an account? <a href="{% url 'login' %}" class="link">Sign in</a>
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

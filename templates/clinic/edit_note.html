@@ -1,0 +1,45 @@
+{% extends 'clinic/dashboard_base.html' %}
+
+{% block dashboard_title %}Edit Medical Note{% endblock %}
+
+{% block dashboard_subtitle %}
+<p class="dashboard-subtitle">Patient: <span class="font-medium text-primary">{{ object.patient.username }}</span></p>
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="max-w-2xl mx-auto">
+    <div class="form-card">
+        <div class="form-card-body">
+            <form method="post" class="django-form">
+                {% csrf_token %}
+                
+                <div class="form-group mb-6">
+                    <label class="form-label">Note Content</label>
+                    <textarea name="content" 
+                              rows="5" 
+                              required
+                              class="form-control">{{ form.content.value|default:'' }}</textarea>
+                    {% for error in form.content.errors %}
+                        <p class="form-error">{{ error }}</p>
+                    {% endfor %}
+                </div>
+                
+                <div class="flex gap-4">
+                    <button type="submit" class="btn btn-success flex-1">
+                        Save Changes
+                    </button>
+                    {% if user.is_nurse %}
+                        <a href="{% url 'clinic:nurse_dashboard' %}" class="btn btn-secondary flex-1">
+                            Cancel
+                        </a>
+                    {% elif user.is_doctor %}
+                        <a href="{% url 'clinic:doctor_dashboard' %}" class="btn btn-secondary flex-1">
+                            Cancel
+                        </a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

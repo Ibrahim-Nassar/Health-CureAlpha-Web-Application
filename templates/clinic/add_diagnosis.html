@@ -1,0 +1,37 @@
+{% extends 'clinic/dashboard_base.html' %}
+
+{% block dashboard_title %}Add Diagnosis{% endblock %}
+
+{% block dashboard_subtitle %}
+<p class="dashboard-subtitle">
+    Patient: <span class="font-medium text-gray-300">{{ object.patient.username }}</span> · 
+    Date: <span class="font-medium text-gray-300">{{ object.date_time }}</span>
+</p>
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="max-w-2xl mx-auto">
+    <div class="form-card">
+        <div class="form-card-body">
+            <form method="post" class="django-form">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ next }}">
+                
+                <div class="form-group mb-6">
+                    <label class="form-label">Diagnosis Details</label>
+                    {{ form.diagnosis }}
+                </div>
+                
+                <div class="flex gap-4">
+                    <button type="submit" class="btn btn-primary flex-1">
+                        Save Diagnosis
+                    </button>
+                    <a href="{% if next %}{{ next }}{% else %}{% url 'clinic:doctor_dashboard' %}{% endif %}" class="btn btn-secondary flex-1">
+                        Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

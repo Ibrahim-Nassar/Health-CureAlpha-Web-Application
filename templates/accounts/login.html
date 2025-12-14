@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+
+{% block title %}Login{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto">
+    <div class="card">
+        <div class="card-body">
+            <h2 class="text-2xl font-bold mb-6 text-center">Login</h2>
+            
+            <form method="post" class="django-form">
+                {% csrf_token %}
+                
+                {% if form.errors %}
+                <div class="alert alert-error mb-4">
+                    <svg class="alert-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <div class="alert-content">
+                        <p class="alert-title">Error</p>
+                        <ul class="list-disc list-inside text-sm">
+                            {% for field in form %}
+                                {% for error in field.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            {% endfor %}
+                            {% for error in form.non_field_errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <div class="form-group">
+                    <label class="form-label" for="id_username">Username</label>
+                    <input type="text" name="username" id="id_username" class="form-control" value="{{ form.username.value|default:'' }}" required autofocus>
+                </div>
+                
+                <div class="form-group mb-6">
+                    <label class="form-label" for="id_password">Password</label>
+                    <div class="password-input-wrapper">
+                        <input type="password" name="password" id="id_password" class="form-control" required>
+                        <button
+                            type="button"
+                            class="password-toggle-btn"
+                            data-password-toggle
+                            data-target="id_password"
+                            aria-label="Show password"
+                            aria-pressed="false"
+                        >
+                            <svg data-icon="eye" class="hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            <svg data-icon="eye-off" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.269-2.943-9.543-7a9.97 9.97 0 012.19-3.568m3.24-2.19A9.956 9.956 0 0112 5c4.478 0 8.269 2.943 9.543 7a9.987 9.987 0 01-4.132 5.411M15 12a3 3 0 00-3-3m0 0a2.995 2.995 0 00-2.132.879M12 9v0m0 6a3 3 0 01-3-3m6 0a3 3 0 01-3 3m0 0v0M3 3l18 18" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn btn-primary btn-block">
+                    Sign In
+                </button>
+            </form>
+
+            <div class="mt-6 text-center space-y-2">
+                <p>
+                    <a href="{% url 'password_reset' %}" class="link text-sm">Forgot your password?</a>
+                </p>
+                <p class="text-sm text-gray-400">
+                    Don't have an account? <a href="{% url 'register' %}" class="link">Register as Patient</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

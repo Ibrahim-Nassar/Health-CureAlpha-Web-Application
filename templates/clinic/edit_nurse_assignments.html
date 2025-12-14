@@ -1,0 +1,51 @@
+{% extends 'clinic/dashboard_base.html' %}
+
+{% block dashboard_title %}Edit Doctor Assignments{% endblock %}
+
+{% block dashboard_subtitle %}
+<p class="dashboard-subtitle">Assigning nurse: <span class="text-primary font-medium">{{ nurse_user.username }}</span></p>
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="max-w-lg mx-auto">
+    <div class="form-card">
+        <div class="form-card-body">
+            <form method="post" class="django-form">
+                {% csrf_token %}
+                
+                <div class="form-group mb-6">
+                    <label class="form-label mb-3">Assigned Doctors</label>
+                    <p class="text-sm text-gray-500 mb-4">Select which doctors this nurse should support. The nurse will be able to add notes for patients of these doctors.</p>
+                    
+                    <div class="space-y-3 bg-darkbg p-4 rounded-lg max-h-80 overflow-y-auto">
+                        {% for checkbox in form.assigned_doctors %}
+                        <label class="flex items-center gap-3 p-2 rounded hover:bg-gray-800 transition cursor-pointer">
+                            {{ checkbox.tag }}
+                            <span class="text-gray-300">{{ checkbox.choice_label }}</span>
+                        </label>
+                        {% empty %}
+                        <p class="text-gray-500 italic">No doctors available. Create doctor accounts first.</p>
+                        {% endfor %}
+                    </div>
+                    
+                    {% if form.assigned_doctors.help_text %}
+                        <p class="form-help mt-2">{{ form.assigned_doctors.help_text }}</p>
+                    {% endif %}
+                    {% for error in form.assigned_doctors.errors %}
+                        <p class="form-error">{{ error }}</p>
+                    {% endfor %}
+                </div>
+                
+                <div class="flex gap-4">
+                    <button type="submit" class="btn btn-primary flex-1">
+                        Save Assignments
+                    </button>
+                    <a href="{% url 'clinic:manage_staff' %}" class="btn btn-secondary flex-1">
+                        Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

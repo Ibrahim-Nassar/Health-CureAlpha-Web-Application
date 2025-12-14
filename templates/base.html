@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Hospital Clinical App{% endblock %}</title>
+    {% load static %}
+    
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+
+<body class="min-h-screen flex flex-col">
+    <nav class="nav relative sticky top-0 z-50">
+        <div class="nav-container sm:px-6 lg:px-8">
+            <div class="nav-content">
+                <a href="{% url 'home' %}" class="nav-brand">🏥 Clinical App</a>
+
+                <button type="button" class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+
+                <div class="nav-links nav-desktop">
+                    {% if user.is_authenticated %}
+                    <a href="{% url 'dashboard' %}" class="nav-link">Dashboard</a>
+                    {% if user.is_patient %}
+                    <a href="{% url 'clinic:book_appointment' %}" class="nav-link">Book</a>
+                    {% elif user.is_doctor %}
+                    <a href="{% url 'clinic:doctor_appointment_history' %}" class="nav-link">History</a>
+                    {% endif %}
+                    <a href="{% url 'password_change' %}" class="nav-link">Password</a>
+                    <form method="post" action="{% url 'logout' %}" class="inline">
+                        {% csrf_token %}
+                        <button type="submit"
+                            class="px-3 py-2 rounded-md text-sm font-medium bg-transparent border border-gray-700 text-red-400 hover:text-red-300 hover:border-primary transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                            Logout
+                        </button>
+                    </form>
+                    <span class="nav-user">{{ user.username }} ({{ user.get_role_display }})</span>
+                    {% else %}
+                    <a href="{% url 'login' %}" class="nav-link">Login</a>
+                    <a href="{% url 'register' %}" class="nav-link">Register</a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="nav-menu" id="nav-menu">
+                {% if user.is_authenticated %}
+                <a href="{% url 'dashboard' %}" class="nav-link">Dashboard</a>
+                {% if user.is_patient %}
+                <a href="{% url 'clinic:book_appointment' %}" class="nav-link">Book Appointment</a>
+                <a href="{% url 'clinic:edit_profile' %}" class="nav-link">Edit Profile</a>
+                {% elif user.is_doctor %}
+                <a href="{% url 'clinic:doctor_appointment_history' %}" class="nav-link">Appointment History</a>
+                {% endif %}
+                <a href="{% url 'password_change' %}" class="nav-link">Change Password</a>
+                <span class="nav-user">{{ user.username }} ({{ user.get_role_display }})</span>
+                <form method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button type="submit"
+                        class="w-full text-left px-3 py-2 rounded-md text-sm font-medium bg-transparent border border-gray-700 text-red-400 hover:text-red-300 hover:border-primary transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                        Logout
+                    </button>
+                </form>
+                {% else %}
+                <a href="{% url 'login' %}" class="nav-link">Login</a>
+                <a href="{% url 'register' %}" class="nav-link">Register</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {% block messages %}
+        {% if messages %}
+        <div class="mb-6">
+            {% for message in messages %}
+            <div
+                class="alert {% if message.tags == 'error' %}alert-error{% elif message.tags == 'success' %}alert-success{% elif message.tags == 'warning' %}alert-warning{% else %}alert-info{% endif %}">
+                <svg class="alert-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    {% if message.tags == 'error' %}
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    {% elif message.tags == 'success' %}
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    {% elif message.tags == 'warning' %}
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
+                    </path>
+                    {% else %}
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    {% endif %}
+                </svg>
+                <div class="alert-content">{{ message }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endblock %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="bg-cardbg border-t border-gray-700 mt-auto">
+        <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+            <p class="text-center text-gray-400 text-sm">&copy; 2025 Secure Clinical App Coursework. Security First.</p>
+        </div>
+    </footer>
+
+    {% load static %}
+    <script src="{% static 'js/main.js' %}"></script>
+</body>
+
+</html>
