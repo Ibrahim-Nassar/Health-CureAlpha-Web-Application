@@ -1,3 +1,4 @@
+from datetime import timedelta
 from django.shortcuts import render, redirect
 from django.views.generic import TemplateView, CreateView, View, FormView
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -12,12 +13,56 @@ from django.conf import settings
 from django.core.cache import cache
 
 
-from .forms import PatientRegistrationForm, TwoFactorLoginForm, TwoFactorVerifyForm
+from .forms import (
+    PatientRegistrationForm,
+    TwoFactorLoginForm,
+    TwoFactorVerifyForm,
+    TwoFactorPasswordResetConfirmForm,
+)
 from .utils import create_2fa_code_for_user, send_2fa_email, verify_2fa_code
 from audit.utils import log_action, get_client_ip, make_rate_limit_key, increment_rate_limit
 from audit.signals import twofa_verification_failed
 
 TWO_FA_SESSION_TIMEOUT_SECONDS = 900
+RECENT_TWO_FA_WINDOW_SECONDS = getattr(settings, "SESSION_COOKIE_AGE", TWO_FA_SESSION_TIMEOUT_SECONDS)
+
+
+class RecentTwoFactorRequiredMixin(LoginRequiredMixin):
+    """
+    Ensures a recent 2FA verification exists in the session before allowing
+    sensitive actions such as password changes.
+    """
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return self.handle_no_permission()
+
+        if not self._has_recent_2fa(request):
+            messages.error(request, 'Please re-verify with 2FA to continue.')
+            return redirect('login')
+
+        return super().dispatch(request, *args, **kwargs)
+
+    def _has_recent_2fa(self, request):
+        verified_at_str = request.session.get('last_2fa_verified_at')
+        verified_user_id = request.session.get('last_2fa_user_id')
+
+        if not verified_at_str or verified_user_id != request.user.id:
+            return False
+
+        try:
+            verified_at = parse_datetime(verified_at_str)
+            if not verified_at:
+                return False
+            if is_naive(verified_at):
+                verified_at = make_aware(verified_at, get_current_timezone())
+            elapsed = (timezone.now() - verified_at).total_seconds()
+            if elapsed > RECENT_TWO_FA_WINDOW_SECONDS:
+                return False
+        except Exception:
+            return False
+
+        return True
 
 class HomeView(TemplateView):
     template_name = 'home.html'
@@ -156,6 +201,8 @@ class TwoFactorVerifyView(FormView):
         
         if success:
             login(self.request, user)
+            self.request.session['last_2fa_verified_at'] = timezone.now().isoformat()
+            self.request.session['last_2fa_user_id'] = user.id
             
             self._clear_pending_session()
             
@@ -205,7 +252,7 @@ class DashboardView(LoginRequiredMixin, View):
         return redirect('home')
 
 
-class LoggedPasswordChangeView(auth_views.PasswordChangeView):
+class LoggedPasswordChangeView(RecentTwoFactorRequiredMixin, auth_views.PasswordChangeView):
     def form_valid(self, form):
         response = super().form_valid(form)
         log_action(self.request, "PASSWORD_CHANGE", f"User: {self.request.user.username}")
@@ -213,6 +260,16 @@ class LoggedPasswordChangeView(auth_views.PasswordChangeView):
 
 
 class LoggedPasswordResetView(auth_views.PasswordResetView):
+    RATE_LIMIT_PREFIX = 'password_reset'
+    RATE_LIMIT_THRESHOLD = 5
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.method == 'POST':
+            attempts = increment_rate_limit(request, self.RATE_LIMIT_PREFIX)
+            if attempts > self.RATE_LIMIT_THRESHOLD:
+                return render(request, '429.html', status=429)
+        return super().dispatch(request, *args, **kwargs)
+
     def form_valid(self, form):
         response = super().form_valid(form)
         log_action(self.request, "PASSWORD_RESET_REQUEST", "Password reset requested")
@@ -220,6 +277,39 @@ class LoggedPasswordResetView(auth_views.PasswordResetView):
 
 
 class LoggedPasswordResetConfirmView(auth_views.PasswordResetConfirmView):
+    form_class = TwoFactorPasswordResetConfirmForm
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["request"] = self.request
+        return kwargs
+
+    def get(self, request, *args, **kwargs):
+        if self.validlink and getattr(self, "user", None):
+            error_response = self._send_reset_2fa_code()
+            if error_response:
+                return error_response
+        return super().get(request, *args, **kwargs)
+
+    def _send_reset_2fa_code(self):
+        try:
+            otp_code = create_2fa_code_for_user(self.user)
+            email_sent = send_2fa_email(self.user, otp_code)
+            if not email_sent:
+                messages.error(self.request, 'Failed to send verification code. Please try again.')
+                return redirect('password_reset')
+            log_action(self.request, "PASSWORD_RESET_2FA_CODE_SENT", f"User: {self.user.username}", user_obj=self.user)
+        except Exception as e:
+            messages.error(self.request, 'Could not send verification code. Please try again later.')
+            log_action(
+                self.request,
+                "PASSWORD_RESET_2FA_ERROR",
+                resource=f"User: {getattr(self.user, 'username', 'unknown')}",
+                details=f"Exception: {type(e).__name__}",
+            )
+            return redirect('password_reset')
+        return None
+
     def form_valid(self, form):
         response = super().form_valid(form)
         user = getattr(self, "user", None)

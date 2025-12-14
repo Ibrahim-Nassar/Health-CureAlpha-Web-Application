@@ -6,6 +6,7 @@ from django.urls import reverse_lazy
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.db.models import Q, Prefetch
+from django.core.exceptions import PermissionDenied
 
 from accounts.models import CustomUser, DoctorProfile, NurseProfile, PatientProfile
 from .models import Appointment, MedicalNote
@@ -290,7 +291,7 @@ class AddMedicalNoteView(LoginRequiredMixin, CreateView):
 
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
-            return super().dispatch(request, *args, **kwargs)
+            return self.handle_no_permission()
 
         target_patient_id = self.kwargs.get('user_id')
         try:
@@ -302,11 +303,11 @@ class AddMedicalNoteView(LoginRequiredMixin, CreateView):
             messages.error(request, 'You do not have access to this patient.')
             return self.handle_no_permission()
         
-        if request.user.can_view_patient(self.target_patient):
-            return super().dispatch(request, *args, **kwargs)
-        
-        messages.error(request, 'You do not have access to this patient.')
-        return self.handle_no_permission()
+        if not request.user.can_view_patient(self.target_patient):
+            messages.error(request, 'You do not have access to this patient.')
+            raise PermissionDenied
+
+        return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
